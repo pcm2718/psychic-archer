@@ -1,3 +1,5 @@
+#import timeit
+from timer import Timer
 from tspgraph import TSPGraph
 
 
@@ -61,26 +63,23 @@ class SolutionSearch:
 
 
 
-    def exhaustive_dhs(self, graph):
+    def search_a(self, graph):
         nodelist = []
         for node in graph.nodelist:
             nodelist.append(node[0])
 
-        return self.r_exhaustive_dhs(State(graph, [0], nodelist))
+        return self.r_search_a(State(graph, [0], nodelist))
 
-    # Should this be iterative?
-    def r_exhaustive_dhs(self, state):
+    def r_search_a(self, state):
         if state.current_cost == float("inf") or state.is_solution():
             return state
 
         best = WorstState()
-        results = []
 
         for node in state.visit_list:
             next_state = state.visit_node(node)
-            results.append(self.r_exhaustive_dhs(next_state))
+            result = self.r_search_a(next_state)
 
-        for result in results:
             if best.current_cost > result.current_cost:
                 best = result
 
@@ -88,8 +87,92 @@ class SolutionSearch:
 
 
 
-g = TSPGraph('tsp10.txt')
+    def search_b(self, graph):
+        nodelist = []
+        for node in graph.nodelist:
+            nodelist.append(node[0])
+
+        return self.r_search_b(State(graph, [0], nodelist), float("inf"))
+
+    def r_search_b(self, state, bound):
+        if state.current_cost >= bound:
+            return WorstState()
+
+        if state.current_cost == float("inf") or state.is_solution():
+            return state
+
+
+        best = WorstState()
+
+        for node in state.visit_list:
+            next_state = state.visit_node(node)
+            result = self.r_search_b(next_state, bound)
+
+            if best.current_cost > result.current_cost:
+                bound = result.current_cost
+                best = result
+
+        return best
+
+
+    
+    # WARNING: search_c may not yet be functional, more testing will be required to evaluate
+    # its functionality.
+    def search_c(self, graph):
+        nodelist = []
+        for node in graph.nodelist:
+            nodelist.append(node[0])
+
+        return self.r_search_c(State(graph, [0], nodelist), float("inf"))
+
+    def r_search_c(self, state, bound):
+        if state.current_cost >= bound:
+            return WorstState()
+
+        if state.current_cost == float("inf") or state.is_solution():
+            return state
+
+
+        # This might break the code due to the duplicate start node.
+        current_node = state.visited_list[-1]
+        sortlist = []
+        for node in state.visit_list:
+            sortlist.append([node, state.graph.adjmatrix.get_adjvalue(node, current_node)])
+        sorted(sortlist, key = lambda sortitem : sortitem[1])
+        state.visit_list = []
+        for node in sortlist:
+            state.visit_list.append(node[0])
+
+
+        best = WorstState()
+
+        for node in state.visit_list:
+            next_state = state.visit_node(node)
+            result = self.r_search_c(next_state, bound)
+
+            if best.current_cost > result.current_cost:
+                bound = result.current_cost
+                best = result
+
+        return best
+
+
+
+def search(func, graph):
+    with Timer() as t:
+        s = func(g)
+    print ""
+    print func.__name__ + ":"
+    print "Elapsed Time: %(secs)s s %(msecs)f ms" % {"secs": t.secs, "msecs": t.msecs}
+    print s.visited_list
+    print s.current_cost
+
+
+
+g = TSPGraph('tsp15.txt')
 s = SolutionSearch()
-sol = s.exhaustive_dhs(g)
-print sol.visited_list
-print sol.current_cost
+
+search(s.search_a, g)
+search(s.search_b, g)
+# WARNING: search_c may not yet work
+search(s.search_c, g)
