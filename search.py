@@ -4,16 +4,21 @@ from tspgraph import TSPGraph
 
 class State:
 
-    def __init__(self, graph, visited_list, visit_list):
+    def __init__(self, graph, visited_list, visit_list, previous_state=None):
         self.graph = graph
 
         self.visited_list = visited_list[:]
         self.visit_list = visit_list[:]
 
-        # We could improve this by using the previous cost, will fix later.
-        self.current_cost = 0
-        for i in range(0, len(self.visited_list)-1):
-            self.current_cost += graph.adjmatrix.get_adjvalue(visited_list[i], visited_list[i+1])
+        # Might be able to elimiate first statement.
+        if previous_state == None:
+            # We could improve this by using the previous cost, will fix later.
+            self.current_cost = 0
+            for i in range(0, len(self.visited_list)-1):
+                self.current_cost += graph.adjmatrix.get_adjvalue(visited_list[i], visited_list[i+1])
+        else:
+            self.current_cost = previous_state.current_cost
+            self.current_cost += graph.adjmatrix.get_adjvalue(visited_list[-2], visited_list[-1])
 
 
 
@@ -71,14 +76,9 @@ class SolutionSearch:
         best = WorstState()
         results = []
 
-        print state.visit_list
-
         for node in state.visit_list:
             next_state = state.visit_node(node)
             results.append(self.r_exhaustive_dhs(next_state))
-
-        print state.visit_list
-        print results
 
         for result in results:
             if best.current_cost > result.current_cost:
@@ -88,7 +88,7 @@ class SolutionSearch:
 
 
 
-g = TSPGraph()
+g = TSPGraph('tsp10.txt')
 s = SolutionSearch()
 sol = s.exhaustive_dhs(g)
 print sol.visited_list
