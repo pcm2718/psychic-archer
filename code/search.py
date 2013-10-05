@@ -89,10 +89,11 @@ class SolutionSearch:
 
     def __init__(self):
         # Time limit is given in seconds.
-        self.timelimit = 100
+        self.timelimit = 1000
 
 
 
+    # This function for diagnostic purposes only.
     def search(self, func, graph):
         with Timer() as t:
             s = func(g, t)
@@ -110,9 +111,12 @@ class SolutionSearch:
         for x in range(1, 14):
             for y in range (0, 4):
                 graph = TSPGraph('tsp225.txt', x)
+                reslist = []
                 for func in funclist:
                     with Timer() as t:
                         s = func(graph, t)
+
+                    reslist.append(t.secs)
 
                     print ""
                     print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
@@ -121,7 +125,8 @@ class SolutionSearch:
                     print "# " + str(s.current_cost)
                     print str(len(graph.nodelist)) + " " + str(t.secs) + " " + str(funclist.index(func))
                     print ""
-                    outfile.write(str(len(graph.nodelist)) + " " + str(t.secs) + " " + str(funclist.index(func)) + "\n")
+
+                outfile.write(str(len(graph.nodelist)) + " " + ' '.join(map(lambda x: str(x), reslist)) + "\n")
 
         outfile.close()
 
