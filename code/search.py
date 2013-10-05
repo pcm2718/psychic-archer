@@ -87,9 +87,10 @@ class WorstState(State):
 
 class SolutionSearch:
 
-    def __init__(self):
+    def __init__(self, timelimit=10000, graphfile="tsp225.txt"):
         # Time limit is given in seconds.
-        self.timelimit = 1000
+        self.timelimit = timelimit
+        self.graphfile = graphfile
 
 
 
@@ -103,6 +104,8 @@ class SolutionSearch:
         print map(lambda node: graph.idlookup[node], s.visited_list)
         print s.current_cost
 
+
+
     def generate_timedata(self, outfile_name):
         funclist = [self.search_a, self.search_b, self.search_c, self.search_d]
         
@@ -110,13 +113,13 @@ class SolutionSearch:
 
         for x in range(1, 14):
             for y in range (0, 4):
-                graph = TSPGraph('tsp225.txt', x)
-                reslist = []
+                graph = TSPGraph(self.graphfile, x)
+                reslist = [0, 0, 0, 0]
                 for func in funclist:
                     with Timer() as t:
                         s = func(graph, t)
 
-                    reslist.append(t.secs)
+                    reslist[funclist.index(func)] += t.secs
 
                     print ""
                     print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
@@ -126,30 +129,42 @@ class SolutionSearch:
                     print str(len(graph.nodelist)) + " " + str(t.secs) + " " + str(funclist.index(func))
                     print ""
 
-                outfile.write(str(len(graph.nodelist)) + " " + ' '.join(map(lambda x: str(x), reslist)) + "\n")
+                reslist = map(lambda x : x/4.0, reslist)
+
+            outfile.write(str(len(graph.nodelist)) + " " + ' '.join(map(lambda x : str(x), reslist)) + "\n")
 
         outfile.close()
 
-    def generate_linedata(self, func, graph):
-#  for x in range(1, 11):
-#    for y in range (0, 4):
-#        g = TSPGraph('tsp225.txt', x)
 
-#        s.generate_timedata(s.search_a, g)
-#        s.generate_timedata(s.search_b, g)
-#        s.generate_timedata(s.search_c, g)
-#        s.generate_timedata(s.search_d, g)
 
-        with Timer() as t:
-            s = func(g, t)
-        print ""
-        print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
-        print "# " + str([node for node in s.visited_list])
-        print "# " + str([graph.idlookup[node] for node in s.visited_list])
-        print "# " + str(s.current_cost)
-        print str(len(graph.nodelist)) + " " + str(t.secs)
-        print ""
+    def generate_linedata(self, outfile_name):
+        funclist = [self.search_a, self.search_b, self.search_c, self.search_d]
+        graph = TSPGraph(self.graphfile, 225)
 
+        outfile = open(outfile_name, 'w')
+
+        statelist = []
+        linelist = []
+        for func in funclist:
+            with Timer() as t:
+                s = func(graph, t)
+
+            statelist.append(s.visited_list)
+
+            print ""
+            print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
+            print "# " + str([node for node in s.visited_list])
+            print "# " + str([graph.idlookup[node] for node in s.visited_list])
+            print "# " + str(s.current_cost)
+            print str(len(graph.nodelist)) + " " + str(t.secs)
+            print ""
+
+        for s in statelist:
+            s = map(lambda x : str(graph.nodelist[x][1]) + ' ' + str(graph.nodelist[x][2]) + '\n', s)
+
+            for t in s:
+                outfile.write(t)
+            outfile.write('\n\n')
 
 
 
@@ -304,4 +319,11 @@ class SolutionSearch:
 
 
 s = SolutionSearch()
-s.generate_timedata("timedata.dat")
+
+# Uncomment this to generate the n vs time plots.
+# Run gnuplot with timeplot.plot in the timeplot folder to generate plots.
+#s.generate_timedata("timeplot.dat")
+
+# Uncomment this to generate shortest path plots.
+# Run gnuplot with pathplot.plot in the pathplot folder to generate plots.
+#s.generate_linedata("pathplot.dat")

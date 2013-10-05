@@ -49,17 +49,17 @@ class TSPGraph:
             self.adjmatrix = AdjMatrix(nodecount)
 
             startline = random.randint(0, linecount - nodecount)
-            for i in range(0, 5 + startline):
+            for i in range(0, 6 + startline):
                 graphfile.next()
 
             for line in graphfile:
                 matchobj = re.match(r"\s{0,2}(?P<nodeid>\d+) (?P<xcoord>\d+\.\d+) (?P<ycoord>\d+\.\d+)", line)
 
                 if matchobj != None:
-                    if int(matchobj.group('nodeid'))-startline >= nodecount:
+                    if int(matchobj.group('nodeid'))-startline-1 >= nodecount:
                         break
                     else:
-                        self.add_node(int(matchobj.group('nodeid')), int(matchobj.group('nodeid'))-startline, matchobj.group('xcoord'), matchobj.group('ycoord'))
+                        self.add_node(int(matchobj.group('nodeid')), int(matchobj.group('nodeid'))-startline-1, matchobj.group('xcoord'), matchobj.group('ycoord'))
 
 
 
