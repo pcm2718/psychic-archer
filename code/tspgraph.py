@@ -1,3 +1,18 @@
+# Parker Michaelson
+# A01248939
+# parker.michaelson@gmail.com
+# Assignment #2
+
+# This file contains the TSPGraph class. TSPGraph is a class representing
+# "static" information about the graph, information that does not change
+# while a search is in progress. This includes a list of nodes and
+# coordinates, an adjacency matrix for the nodes whose values are distances
+# between adjacent nodes and a lookup table to correlate the number of a node
+# in the source file with its internal representation. The class includes
+# utility functions for constructing itself.
+
+
+
 import math
 import random
 import re

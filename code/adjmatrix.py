@@ -1,3 +1,14 @@
+# Parker Michaleson
+# A01248939
+# parker.michaelson@gmail.com
+# Assignment #2
+
+# This file contains the AdjMatrix class. AdjMatrix is a class representing an
+# adjacency matrix, and includes functions for setting and getting the
+# adjacency value of two nodes.
+
+
+
 class AdjMatrix:
 
     def __init__(self, nodecount):

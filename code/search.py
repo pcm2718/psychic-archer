@@ -1,10 +1,35 @@
 # Parker Michaleson
 # A01248939
 # parker.michaelson@gmail.com
-# Assignment 2
+# Assignment #2
+
+# This file contains three classes.
+
+# The class State represents the state of a search at some node. It
+# incorperates information such as the current search path, unvisited nodes,
+# and the current cost of the path it represents. It also contains a reference
+# to the TSPGraph object being searched and functions representing operators.
+
+# The class WorstState is a subclass of State, and represents a state where no
+# path exists and with an infinite cost. It is used as a convinience in the 
+# search of the solution space.
+
+# The class SolutionSearch contains functions for searching a problem 
+# represented by TSPGraph:
+#
+#       search_a is a brute force search of the solution space.
+#       search_b is an improved version of search_a, where exploration is
+#           bounded by the current best length path.
+#       search_c is an improved version of search_b, which attempts to explore
+#           nodes closer to the current node before ones that are more distant.
+#       search_d is an improved version of search_b, with a heureistic
+#           instructing it at any step to try the node closest to the starting
+#           node.
+#
 
 
 
+import time
 from timer import Timer
 from tspgraph import TSPGraph
 
@@ -18,9 +43,7 @@ class State:
         self.visited_list = visited_list[:]
         self.visit_list = visit_list[:]
 
-        # Might be able to elimiate first statement.
         if previous_state == None:
-            # We could improve this by using the previous cost, will fix later.
             self.current_cost = 0
             for i in range(0, len(self.visited_list)-1):
                 self.current_cost += graph.adjmatrix.get_adjvalue(visited_list[i], visited_list[i+1])
@@ -65,22 +88,55 @@ class WorstState(State):
 class SolutionSearch:
 
     def __init__(self):
-        pass
+        # Time limit is given in seconds.
+        self.timelimit = 100
 
 
 
     def search(self, func, graph):
         with Timer() as t:
-            s = func(g)
+            s = func(g, t)
         print ""
         print func.__name__ + ":"
         print "Elapsed Time: %(secs)s s %(msecs)f ms" % {"secs": t.secs, "msecs": t.msecs}
         print map(lambda node: graph.idlookup[node], s.visited_list)
         print s.current_cost
 
-    def search_to_file(self, func, graph):
+    def generate_timedata(self, outfile_name):
+        funclist = [self.search_a, self.search_b, self.search_c, self.search_d]
+        
+        outfile = open(outfile_name, 'w')
+
+        for x in range(1, 14):
+            for y in range (0, 4):
+                graph = TSPGraph('tsp225.txt', x)
+                for func in funclist:
+                    with Timer() as t:
+                        s = func(graph, t)
+
+                    print ""
+                    print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
+                    print "# " + str([node for node in s.visited_list])
+                    print "# " + str([graph.idlookup[node] for node in s.visited_list])
+                    print "# " + str(s.current_cost)
+                    print str(len(graph.nodelist)) + " " + str(t.secs) + " " + str(funclist.index(func))
+                    print ""
+                    outfile.write(str(len(graph.nodelist)) + " " + str(t.secs) + " " + str(funclist.index(func)) + "\n")
+
+        outfile.close()
+
+    def generate_linedata(self, func, graph):
+#  for x in range(1, 11):
+#    for y in range (0, 4):
+#        g = TSPGraph('tsp225.txt', x)
+
+#        s.generate_timedata(s.search_a, g)
+#        s.generate_timedata(s.search_b, g)
+#        s.generate_timedata(s.search_c, g)
+#        s.generate_timedata(s.search_d, g)
+
         with Timer() as t:
-            s = func(g)
+            s = func(g, t)
         print ""
         print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
         print "# " + str([node for node in s.visited_list])
@@ -91,22 +147,26 @@ class SolutionSearch:
 
 
 
-    def search_a(self, graph):
+
+    def search_a(self, graph, timer):
         nodelist = []
         for node in graph.nodelist:
             nodelist.append(node[0])
 
-        return self.r_search_a(State(graph, [0], nodelist))
+        return self.r_search_a(State(graph, [0], nodelist), timer)
 
-    def r_search_a(self, state):
+    def r_search_a(self, state, timer):
         if state.current_cost == float("inf") or state.is_solution():
             return state
 
         best = WorstState()
 
         for node in state.visit_list:
+            if time.time() - timer.start > self.timelimit:
+                break
+
             next_state = state.visit_node(node)
-            result = self.r_search_a(next_state)
+            result = self.r_search_a(next_state, timer)
 
             if best.current_cost > result.current_cost:
                 best = result
@@ -115,14 +175,14 @@ class SolutionSearch:
 
 
 
-    def search_b(self, graph):
+    def search_b(self, graph, timer):
         nodelist = []
         for node in graph.nodelist:
             nodelist.append(node[0])
 
-        return self.r_search_b(State(graph, [0], nodelist), float("inf"))
+        return self.r_search_b(State(graph, [0], nodelist), float("inf"), timer)
 
-    def r_search_b(self, state, bound):
+    def r_search_b(self, state, bound, timer):
         if state.current_cost >= bound:
             return WorstState()
 
@@ -133,8 +193,11 @@ class SolutionSearch:
         best = WorstState()
 
         for node in state.visit_list:
+            if time.time() - timer.start > self.timelimit:
+                break
+
             next_state = state.visit_node(node)
-            result = self.r_search_b(next_state, bound)
+            result = self.r_search_b(next_state, bound, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
@@ -144,16 +207,14 @@ class SolutionSearch:
 
 
     
-    # WARNING: search_c may not yet be functional, more testing will be required to evaluate
-    # its functionality.
-    def search_c(self, graph):
+    def search_c(self, graph, timer):
         nodelist = []
         for node in graph.nodelist:
             nodelist.append(node[0])
 
-        return self.r_search_c(State(graph, [0], nodelist), float("inf"))
+        return self.r_search_c(State(graph, [0], nodelist), float("inf"), timer)
 
-    def r_search_c(self, state, bound):
+    def r_search_c(self, state, bound, timer):
         if state.current_cost >= bound:
             return WorstState()
 
@@ -161,11 +222,6 @@ class SolutionSearch:
             return state
 
 
-        # Some alternate code.
-        # sortlist = zip( state.visit_list, map(lambda node : state.graph.adjmatrix.get_adjvalue(node, current_node), state.visit_list))
-        # state.visit_list = map(lambda x : x[0], sortlist)
-
-        # This might break the code due to the duplicate start node.
         current_node = state.visited_list[-1]
         sortlist = []
         for node in state.visit_list:
@@ -179,8 +235,11 @@ class SolutionSearch:
         best = WorstState()
 
         for node in state.visit_list:
+            if time.time() - timer.start > self.timelimit:
+                break
+
             next_state = state.visit_node(node)
-            result = self.r_search_c(next_state, bound)
+            result = self.r_search_c(next_state, bound, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
@@ -190,17 +249,18 @@ class SolutionSearch:
 
 
 
-    def search_d(self, graph):
+    def search_d(self, graph, timer):
         nodelist = []
         for node in graph.nodelist:
             nodelist.append(node[0])
 
-        return self.r_search_d(State(graph, [0], nodelist), float("inf"))
+        return self.r_search_d(State(graph, [0], nodelist), float("inf"), timer)
 
+    # This is the heuristic for search_d.
     def h_search_d(self, state, node, choice):
         return state.graph.adjmatrix.get_adjvalue(state.visited_list[0], choice)
 
-    def r_search_d(self, state, bound):
+    def r_search_d(self, state, bound, timer):
         if state.current_cost >= bound:
             return WorstState()
 
@@ -222,8 +282,11 @@ class SolutionSearch:
         best = WorstState()
 
         for node in state.visit_list:
+            if time.time() - timer.start > self.timelimit:
+                break
+
             next_state = state.visit_node(node)
-            result = self.r_search_d(next_state, bound)
+            result = self.r_search_d(next_state, bound, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
@@ -236,12 +299,4 @@ class SolutionSearch:
 
 
 s = SolutionSearch()
-
-for x in range(1, 8):
-    for y in range (0, 5):
-        g = TSPGraph('tsp225.txt', x)
-
-        s.search_to_file(s.search_a, g)
-        s.search_to_file(s.search_b, g)
-        s.search_to_file(s.search_c, g)
-        s.search_to_file(s.search_d, g)
+s.generate_timedata("timedata.dat")
