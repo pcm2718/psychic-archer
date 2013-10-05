@@ -111,7 +111,7 @@ class SolutionSearch:
         
         outfile = open(outfile_name, 'w')
 
-        for x in range(1, 14):
+        for x in range(1, 16):
             for y in range (0, 4):
                 graph = TSPGraph(self.graphfile, x)
                 reslist = [0, 0, 0, 0]
@@ -322,8 +322,8 @@ s = SolutionSearch()
 
 # Uncomment this to generate the n vs time plots.
 # Run gnuplot with timeplot.plot in the timeplot folder to generate plots.
-#s.generate_timedata("timeplot.dat")
+s.generate_timedata("../timeplot/timeplot.dat")
 
 # Uncomment this to generate shortest path plots.
 # Run gnuplot with pathplot.plot in the pathplot folder to generate plots.
-#s.generate_linedata("pathplot.dat")
+s.generate_linedata("../pathplot/pathplot.dat")
