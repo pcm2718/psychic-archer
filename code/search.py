@@ -1,4 +1,10 @@
-#import timeit
+# Parker Michaleson
+# A01248939
+# parker.michaelson@gmail.com
+# Assignment 2
+
+
+
 from timer import Timer
 from tspgraph import TSPGraph
 
@@ -60,6 +66,28 @@ class SolutionSearch:
 
     def __init__(self):
         pass
+
+
+
+    def search(self, func, graph):
+        with Timer() as t:
+            s = func(g)
+        print ""
+        print func.__name__ + ":"
+        print "Elapsed Time: %(secs)s s %(msecs)f ms" % {"secs": t.secs, "msecs": t.msecs}
+        print map(lambda node: graph.idlookup[node], s.visited_list)
+        print s.current_cost
+
+    def search_to_file(self, func, graph):
+        with Timer() as t:
+            s = func(g)
+        print ""
+        print "# " + str(len(graph.nodelist)) + " nodes, " + func.__name__
+        print "# " + str([node for node in s.visited_list])
+        print "# " + str([graph.idlookup[node] for node in s.visited_list])
+        print "# " + str(s.current_cost)
+        print str(len(graph.nodelist)) + " " + str(t.secs)
+        print ""
 
 
 
@@ -133,6 +161,10 @@ class SolutionSearch:
             return state
 
 
+        # Some alternate code.
+        # sortlist = zip( state.visit_list, map(lambda node : state.graph.adjmatrix.get_adjvalue(node, current_node), state.visit_list))
+        # state.visit_list = map(lambda x : x[0], sortlist)
+
         # This might break the code due to the duplicate start node.
         current_node = state.visited_list[-1]
         sortlist = []
@@ -142,7 +174,7 @@ class SolutionSearch:
         state.visit_list = []
         for node in sortlist:
             state.visit_list.append(node[0])
-
+       
 
         best = WorstState()
 
@@ -158,21 +190,58 @@ class SolutionSearch:
 
 
 
-def search(func, graph):
-    with Timer() as t:
-        s = func(g)
-    print ""
-    print func.__name__ + ":"
-    print "Elapsed Time: %(secs)s s %(msecs)f ms" % {"secs": t.secs, "msecs": t.msecs}
-    print s.visited_list
-    print s.current_cost
+    def search_d(self, graph):
+        nodelist = []
+        for node in graph.nodelist:
+            nodelist.append(node[0])
+
+        return self.r_search_d(State(graph, [0], nodelist), float("inf"))
+
+    def h_search_d(self, state, node, choice):
+        return state.graph.adjmatrix.get_adjvalue(state.visited_list[0], choice)
+
+    def r_search_d(self, state, bound):
+        if state.current_cost >= bound:
+            return WorstState()
+
+        if state.current_cost == float("inf") or state.is_solution():
+            return state
+
+
+        # Find the node the heuristic says to search next. Put them in a list.
+        current_node = state.visited_list[-1]
+        sortlist = []
+        for choice in state.visit_list:
+            sortlist.append([choice, self.h_search_d(state, current_node, choice)])
+        sorted(sortlist, key = lambda sortitem : sortitem[1])
+        state.visit_list = []
+        for node in sortlist:
+            state.visit_list.append(node[0])
+
+
+        best = WorstState()
+
+        for node in state.visit_list:
+            next_state = state.visit_node(node)
+            result = self.r_search_d(next_state, bound)
+
+            if best.current_cost > result.current_cost:
+                bound = result.current_cost
+                best = result
+
+        return best
 
 
 
-g = TSPGraph('tsp15.txt')
+
+
 s = SolutionSearch()
 
-search(s.search_a, g)
-search(s.search_b, g)
-# WARNING: search_c may not yet work
-search(s.search_c, g)
+for x in range(1, 8):
+    for y in range (0, 5):
+        g = TSPGraph('tsp225.txt', x)
+
+        s.search_to_file(s.search_a, g)
+        s.search_to_file(s.search_b, g)
+        s.search_to_file(s.search_c, g)
+        s.search_to_file(s.search_d, g)

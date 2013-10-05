@@ -1,4 +1,5 @@
 import math
+import random
 import re
 from adjmatrix import AdjMatrix
 
@@ -6,37 +7,50 @@ from adjmatrix import AdjMatrix
 
 class TSPGraph:
 
-    def __init__(self, graphfile="tsp25.txt"):
+    def __init__(self, graphfile="tsp225.txt", nodecount=None):
         self.nodelist = []
+        self.idlookup = []
         self.adjmatrix = None
-        self.load_graph(graphfile)
+        self.load_graph(graphfile, nodecount)
         self.generate_adjmatrix()
 
 
 
-    def load_graph(self, filename):
+    def load_graph(self, filename, nodecount):
         with open(filename, 'r') as graphfile: 
 
             if graphfile == None:
                 sys.exit("Graph File Non-Existent, ensure file exists.")
-                
+           
+            linecount = 0
             for line in graphfile:
-                matchobj = re.match(r"DIMENSION : (?P<nodecount>\d+)", line)
+                matchobj = re.match(r"DIMENSION : (?P<linecount>\d+)", line)
 
                 if matchobj != None:
-                    self.adjmatrix = AdjMatrix(int(matchobj.group('nodecount')))
+                    linecount = int(matchobj.group('linecount'))
                     break
+            graphfile.seek(0)
+
+            self.adjmatrix = AdjMatrix(nodecount)
+
+            startline = random.randint(0, linecount - nodecount)
+            for i in range(0, 5 + startline):
+                graphfile.next()
 
             for line in graphfile:
                 matchobj = re.match(r"\s{0,2}(?P<nodeid>\d+) (?P<xcoord>\d+\.\d+) (?P<ycoord>\d+\.\d+)", line)
 
                 if matchobj != None:
-                    self.add_node(int(matchobj.group('nodeid'))-1, matchobj.group('xcoord'), matchobj.group('ycoord'))
+                    if int(matchobj.group('nodeid'))-startline >= nodecount:
+                        break
+                    else:
+                        self.add_node(int(matchobj.group('nodeid')), int(matchobj.group('nodeid'))-startline, matchobj.group('xcoord'), matchobj.group('ycoord'))
 
 
 
-    def add_node(self, nodeid, xcoord, ycoord):
-        self.nodelist.append([int(nodeid), float(xcoord), float(ycoord)])
+    def add_node(self, nodeid, nodeindex, xcoord, ycoord):
+        self.nodelist.append([int(nodeindex), float(xcoord), float(ycoord)])
+        self.idlookup.append(nodeid)
 
 
 
@@ -51,15 +65,3 @@ class TSPGraph:
                     deltay = n[2] - m[2]
                     distance = math.sqrt(math.pow(deltax, 2) + math.pow(deltay, 2))
                     self.adjmatrix.set_adjvalue(n[0], m[0], distance)
-
-
-
-def main():
-    t = TSPGraph()
-    print t.nodelist
-    t.adjmatrix.print_adjmatrix()
-
-
-
-if __name__ == '__main__':
-    main()
