@@ -22,7 +22,7 @@ from adjmatrix import AdjMatrix
 
 class TSPGraph:
 
-    def __init__(self, graphfile="tsp225.txt", nodecount=None):
+    def __init__(self, graphfile, nodecount=None):
         self.nodelist = []
         self.idlookup = []
         self.adjmatrix = None
