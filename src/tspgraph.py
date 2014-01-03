@@ -18,58 +18,33 @@ import random
 import re
 from adjmatrix import AdjMatrix
 
+import sys
+
 
 
 class TSPGraph:
 
-    def __init__(self, graphfile, nodecount=None):
+    def __init__(self):
         self.nodelist = []
         self.idlookup = []
         self.adjmatrix = None
-        self.load_graph(graphfile, nodecount)
+        self.read_graph()
         self.generate_adjmatrix()
 
 
 
-    def load_graph(self, filename, nodecount):
-        with open(filename, 'r') as graphfile: 
-
-            if graphfile == None:
-                sys.exit("Graph File Non-Existent, ensure file exists.")
-           
-            linecount = 0
-            for line in graphfile:
-                matchobj = re.match(r"DIMENSION : (?P<linecount>\d+)", line)
-
-                if matchobj != None:
-                    linecount = int(matchobj.group('linecount'))
-                    break
-            graphfile.seek(0)
-
-            self.adjmatrix = AdjMatrix(nodecount)
-
-            startline = random.randint(0, linecount - nodecount)
-            for i in range(0, 6 + startline):
-                graphfile.next()
-
-            for line in graphfile:
-                matchobj = re.match(r"\s{0,2}(?P<nodeid>\d+) (?P<xcoord>\d+\.\d+) (?P<ycoord>\d+\.\d+)", line)
-
-                if matchobj != None:
-                    if int(matchobj.group('nodeid'))-startline-1 >= nodecount:
-                        break
-                    else:
-                        self.add_node(int(matchobj.group('nodeid')), int(matchobj.group('nodeid'))-startline-1, matchobj.group('xcoord'), matchobj.group('ycoord'))
-
-
-
-    def add_node(self, nodeid, nodeindex, xcoord, ycoord):
-        self.nodelist.append([int(nodeindex), float(xcoord), float(ycoord)])
-        self.idlookup.append(nodeid)
+    def read_graph(self):
+        for line in sys.stdin:
+            # May restore index variable. This area kind of hacky.
+            nodeid, xcoord, ycoord = list(map(float, line.split()))
+            self.nodelist.append([len(self.nodelist), float(xcoord), float(ycoord)])
+            self.idlookup.append(int(nodeid))
 
 
 
     def generate_adjmatrix(self):
+        self.adjmatrix = AdjMatrix(len(self.nodelist))
+
         # Try to fix the redundant assignments later.
         for n in self.nodelist:
             for m in self.nodelist[n[0]:len(self.nodelist)]:

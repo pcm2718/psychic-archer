@@ -36,20 +36,21 @@ from tspgraph import TSPGraph
 
 class State:
 
-    def __init__(self, visited, tovisit, previous_state=None):
+    def __init__(self, graph, visited, tovisit, previous_state=None):
         self.visited = visited[:]
         self.tovisit = tovisit[:]
 
+        # It might be worth it to replace some lists with arrays.
+        #self.board = array.array('i', [ -2 for i in range(0, self.max_x*self.max_y) ])
+
         if previous_state == None:
-            self.current_cost = 0
-            for i in range(0, len(self.visited)-1):
-                self.current_cost += graph.adjmatrix.get_adjvalue(visited[i], visited[i+1])
+            self.current_cost = sum([graph.adjmatrix.get_adjvalue(visited[i], visited[i+1]) for i in range(0, len(self.visited)-1)])
         else:
             self.current_cost = previous_state.current_cost + graph.adjmatrix.get_adjvalue(visited[-2], visited[-1])
 
 
 
-    def visit_node(self, node):
+    def visit(self, graph, node):
         visited = self.visited[:]
         tovisit = self.tovisit[:]
 
@@ -58,17 +59,18 @@ class State:
         elif node in tovisit:
             tovisit.remove(node)
             visited.append(node)
-            return State(visited, tovisit)
+            return State(graph, visited, tovisit, self)
         else:
             return WorstState()
 
 
 
     def is_solution(self):
+        # Note: may be able to shave off the second part of this test.
+        # This would be done by allowing the algorithm to avoid picking obvious non-hamiltonians.
         if len(self.tovisit) == 0 and self.visited[0] == self.visited[-1]:
             return True
-        else:
-            return False
+        return False
 
 
 
@@ -83,22 +85,25 @@ class WorstState(State):
 
 class Search:
 
-    def __init__(self):
-        pass
+    def search(graph, search, budget):
+        searchhash = {
+                'a' : Search.r_search_a ,
+                'b' : Search.r_search_b ,
+                'c' : Search.r_search_c ,
+                'd' : Search.r_search_d ,
+                }
 
+        with Timer() as t:
+            return searchhash[search](graph, State(graph, [0], [x[0] for x in graph.nodelist]), float("inf"), float(budget), t)
 
-
-    def search_a(self, graph, budget):
-        return self.r_search_a(graph, State([0], [x[0] for x in graph.nodelist]), Timer())
-
-    def r_search_a(self, graph, state, budget, timer):
+    def r_search_a(graph, state, bound, budget, timer):
         if timer.get_secs() > budget or state.current_cost == float("inf") or state.is_solution():
             return state
 
         best = WorstState()
 
-        for node in state.visit:
-            result = self.r_search_a(graph, state.visit_node(node), budget, timer)
+        for node in state.tovisit:
+            result = Search.r_search_a(graph, state.visit(graph, node), bound, budget, timer)
 
             if best.current_cost > result.current_cost:
                 best = result
@@ -107,18 +112,15 @@ class Search:
 
 
 
-    def search_b(self, graph, budget):
-        return self.r_search_b(graph, State([0], [x[0] for x in graph.nodelist]), float("inf"), budget, Timer())
-
-    def r_search_b(self, state, bound, budget, timer):
+    def r_search_b(graph, state, bound, budget, timer):
         if timer.get_secs() > budget or state.current_cost >= bound or state.is_solution():
             return state
 
 
         best = WorstState()
 
-        for node in state.visit:
-            result = self.r_search_b(graph, state.visit_node(node), bound, budget, timer)
+        for node in state.tovisit:
+            result = Search.r_search_b(graph, state.visit(graph, node), bound, budget, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
@@ -128,21 +130,16 @@ class Search:
 
 
     
-    def search_c(self, graph, budget):
-        return self.r_search_c(graph, State([0], [x[0] for x in graph.nodelist]), float("inf"), Timer())
-
-    def r_search_c(self, graph, state, bound, budget, timer):
+    def r_search_c(graph, state, bound, budget, timer):
         if timer.get_secs() > budget or state.current_cost >= bound or state.is_solution():
             return state
 
-
-        state.tovisit = [x[0] for x in sorted([[node, graph.adjmatrix.get_adjvalue(state.visited_list[-1], node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
-       
+        state.tovisit = [x[0] for x in sorted([[node, graph.adjmatrix.get_adjvalue(state.visited[-1], node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
 
         best = WorstState()
 
-        for node in state.visit_list:
-            result = self.r_search_c(graph, state.visit_node(node), bound, budget, timer)
+        for node in state.tovisit:
+            result = Search.r_search_c(graph, state.visit(graph, node), bound, budget, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
@@ -152,29 +149,24 @@ class Search:
 
 
 
-    def search_d(self, graph, budget):
-        return self.r_search_d(State(graph, [0], [x[0] for x in graph.nodelist]), float("inf"), Timer())
-
     # This is the heuristic for search_d.
-    def h_search_d(self, graph, node):
-        return graph.adjmatrix.get_adjvalue(state.visited_list[0], node)
+    def h_search_d(graph, state, node):
+        return graph.adjmatrix.get_adjvalue(state.visited[0], node)
 
-    def r_search_d(self, graph, state, bound, budget, timer):
+    def r_search_d(graph, state, bound, budget, timer):
         if state.current_cost >= bound:
             return WorstState()
 
         if state.current_cost == float("inf") or state.is_solution():
             return state
 
-
         # Find the node the heuristic says to search next. Put them in a list.
-        state.tovisit = [x[0] for x in sorted([[node, self.h_search_d(graph, node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
-
+        state.tovisit = [x[0] for x in sorted([[node, Search.h_search_d(graph, state, node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
 
         best = WorstState()
 
-        for node in state.visit_list:
-            result = self.r_search_d(graph, state.visit_node(node), bound, budget, timer)
+        for node in state.tovisit:
+            result = Search.r_search_d(graph, state.visit(graph, node), bound, budget, timer)
 
             if best.current_cost > result.current_cost:
                 bound = result.current_cost
