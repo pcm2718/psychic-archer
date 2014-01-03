@@ -11,7 +11,7 @@ do
 			ORDER=$(echo -n "$NODES" | python ../../src/test.py ${search} ${budget} | cut -d'!' -f5 | sed s/"[],[]"/""/g)
 			for NODE in $ORDER
 			do
-				awk "{ if (\$1 == ${NODE}) print \$0 }" tsp_graphs/tsp225.txt >> pathdat/pathdat_${search}_${budget}.dat
+				awk "{ if (\$1 == ${NODE}) print \$0 }" ../../tsp_graphs/tsp225.txt >> pathdat/pathdat_${search}_${budget}.dat
 			done
 		) &
 	done
