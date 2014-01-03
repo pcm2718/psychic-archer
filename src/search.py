@@ -40,9 +40,6 @@ class State:
         self.visited = visited[:]
         self.tovisit = tovisit[:]
 
-        # It might be worth it to replace some lists with arrays.
-        #self.board = array.array('i', [ -2 for i in range(0, self.max_x*self.max_y) ])
-
         if previous_state == None:
             self.current_cost = sum([graph.adjmatrix.get_adjvalue(visited[i], visited[i+1]) for i in range(0, len(self.visited)-1)])
         else:
@@ -82,6 +79,11 @@ class WorstState(State):
 
 
 
+    def is_solution(self):
+        return False
+
+
+
 
 class Search:
 
@@ -97,8 +99,11 @@ class Search:
             return searchhash[search](graph, State(graph, [0], [x[0] for x in graph.nodelist]), float("inf"), float(budget), t)
 
     def r_search_a(graph, state, bound, budget, timer):
-        if timer.get_secs() > budget or state.current_cost == float("inf") or state.is_solution():
-            return state
+        if state.is_solution():
+                return state
+
+        if timer.get_secs() > budget:
+                return WorstState()
 
         best = WorstState()
 
@@ -113,9 +118,11 @@ class Search:
 
 
     def r_search_b(graph, state, bound, budget, timer):
-        if timer.get_secs() > budget or state.current_cost >= bound or state.is_solution():
-            return state
+        if state.is_solution():
+                return state
 
+        if timer.get_secs() > budget or state.current_cost >= bound:
+                return WorstState()
 
         best = WorstState()
 
@@ -131,8 +138,11 @@ class Search:
 
     
     def r_search_c(graph, state, bound, budget, timer):
-        if timer.get_secs() > budget or state.current_cost >= bound or state.is_solution():
-            return state
+        if state.is_solution():
+                return state
+
+        if timer.get_secs() > budget or state.current_cost >= bound:
+                return WorstState()
 
         state.tovisit = [x[0] for x in sorted([[node, graph.adjmatrix.get_adjvalue(state.visited[-1], node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
 
@@ -154,12 +164,12 @@ class Search:
         return graph.adjmatrix.get_adjvalue(state.visited[0], node)
 
     def r_search_d(graph, state, bound, budget, timer):
-        if state.current_cost >= bound:
-            return WorstState()
+        if state.is_solution():
+                return state
 
-        if state.current_cost == float("inf") or state.is_solution():
-            return state
-
+        if timer.get_secs() > budget or state.current_cost >= bound:
+                return WorstState()
+ 
         # Find the node the heuristic says to search next. Put them in a list.
         state.tovisit = [x[0] for x in sorted([[node, Search.h_search_d(graph, state, node)] for node in state.tovisit], key = lambda sortitem : sortitem[1])]
 
